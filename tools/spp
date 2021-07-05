@@ -1,11 +1,19 @@
 #!/usr/bin/bash
-
-# sbpp
-# Simple PreProcessor
 #
-# @param $1 definition file
+# spp
+# A very Simple PreProcessor that substitutes strings in $__KEY__ format
+# with a configured values
+#
+# @param $1 definitions file
 # @param $2 input  file
 # @param $3 output file
+
+# The definitions file format is assumed
+# Every line is a substitution mapping in the format "KEY,VALUE"
+#
+# Example:
+# The line "MY_VAR,my_value" causes the substitution of all
+# "$___MY_VAR__" strings in the input file to "my_value" 
 
 set -o errexit
 set -o nounset
