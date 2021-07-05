@@ -1,0 +1,42 @@
+#!/usr/bin/bash
+#
+# Configure script for runit-user
+
+set -o errexit
+set -o nounset
+
+declare -r cfgFile="build/configure.make"
+declare -r sppDefFile="build/defines.csv"
+
+function getPackageVersion
+{
+	if git describe 2> /dev/null ; then
+		# shellcheck disable=2016
+		echo '`git descrbe` now working'
+		echo 'fix ./configure ASAP'
+		exit 1
+	fi
+
+	echo "v0.0.0-cantGitIt"
+	# git describe --dirty
+}
+
+mkdir -p "$( dirname $cfgFile )"
+
+# Setup the preprocessor
+cat > "$sppDefFile" <<-EOF
+	RUNIT_USER_VERSION,$( getPackageVersion )
+	RUNIT_USER_BINDIR,/lib/runit-user/bin
+	RUNIT_USER_LIBDIR,/lib/runit-user/lib
+	EOF
+
+# Setup the make configuration file
+sed -e "s!,! := !" "$sppDefFile" > "$cfgFile"
+
+cat >> "$cfgFile" <<-EOF
+	INSTALL_MODE ?= test
+	DISTMODE ?= test
+	LIBDIR ?= /lib/runit-user
+	PREFIX ?= /lib/runit-user
+	EOF
+

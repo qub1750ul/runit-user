@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+
+# sbpp
+# Simple PreProcessor
+#
+# @param $1 definition file
+# @param $2 input  file
+# @param $3 output file
+
+set -o errexit
+set -o nounset
+
+declare -a sedScript
+
+while IFS="," read -r key value ; do
+	sedScript+=( "-e" "s!\$__${key}__!${value}!" )
+done < "$1" 
+
+sed "${sedScript[@]}" "$2" > "$3"

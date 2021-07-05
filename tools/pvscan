@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+#
+# pvscan
+# Find preprocessor variables in source
+
+# @param '$@' source files
+
+set -o errexit
+set -o nounset
+set -o pipefail
+shopt -s lastpipe
+
+declare -a variables
+
+function pvscan
+{
+	# shellcheck disable=2016
+	readonly vpattern='\$__.*__'
+	grep -Eoe "$vpattern" "$1"
+}
+
+function pvscanFiles
+{
+	if [ $# -eq 0 ] ; then
+
+		while read -r srcFile ; do
+			pvscan "$srcFile" &
+		done
+
+	else
+
+		for f in "$@" ; do
+			pvscan "$f" &
+		done
+
+	fi
+}
+
+if [ $# -eq 0 ] ; then
+	find src -type f | pvscanFiles | sort -u
+else
+	pvscanFiles "$@" | sort -u
+fi

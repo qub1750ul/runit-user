@@ -1,0 +1,109 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# Print initial message
+cat "$__RUNIT_USER_LIBDIR__/logo.txt" <<-EOF
+
+	RUnit User $__RUNIT_USER_VERSION__
+
+	https://github.com/qub1750ul/runit-user
+
+	EOF
+
+# Load the function library
+# shellcheck source=src/lib/initFunctions
+source "$__RUNIT_USER_LIBDIR__/initFunctions"
+
+# Check if the user environment is sane
+checkLoginEnv
+
+# Reset PWD to ~
+cd
+runit-log -p "PWD is $PWD"
+
+# Load default environment
+runit-log -p "Loading environment"
+loadEnv "$__RUNIT_USER_LIBDIR__/env"
+
+# Load user environment
+if [ -r "$RUNIT_USER_ENVFILE" ] ; then
+
+	set -o allexport
+	# shellcheck disable=SC1090
+	source "$RUNIT_USER_ENVFILE"
+	set +o allexport
+
+else
+
+	runit-echo <<-EOF
+		WARNING: Cannot load user envfile
+		WARNING: Falling back to default environment
+		EOF
+
+	# shellcheck disable=SC2162
+	read -sn 1 -p "$( runit-echo 'Press any key to continue' )"
+	echo ''
+
+fi
+
+# Initialize file system
+if [ -d "$RUNIT_USER_RTDIR" ] ; then
+
+	runit-echo <<-EOF
+		Detected runit-user runtime files
+		EOF
+
+else
+
+	# Initialize dirs
+	mkdir -p "$RUNIT_USER_RTDIR"
+
+	# Enable log sink
+	runit-echo "Enabling logging"
+	mkfifo -m 0600 "$RUNIT_USER_LOGPIPE"
+
+fi
+
+# Run user session
+for stage in 1 2 3 ; do
+
+	declare stageScript="${RUNIT_USER_HOME}/${stage}"
+	declare -i stagePid
+	declare errorMessage=""
+
+	runit-log "Running stage ${stage}"
+
+	# Setup signal handling
+	trap 'jobs -p | xargs kill -s TERM ; exit 1' TERM
+
+	case "$stage" in
+		'2') trap 'kill -s HUP $stagePid' CONT ;;
+		'*') trap - CONT ;;
+	esac
+
+	# Run stage scripts
+	if [ ! -x "$stageScript" ] ; then
+		errorMessage="Cannot execute stage ${stage}"
+	else
+		$stageScript &
+
+		stagePid=$!
+
+		if ! wait $stagePid ; then
+			errorMessage="Detected errors in stage ${stage}"
+		fi
+	fi
+
+	# Report errors if detected
+	[ -n "$errorMessage" ] && runit-errprompt "$errorMessage"
+
+done
+
+# Begin cleanup routine
+runit-log 'Exiting runit-user'
+
+kill -s TERM $$
+wait

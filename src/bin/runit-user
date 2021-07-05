@@ -1,0 +1,20 @@
+#!/usr/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+declare -r bindir="$__RUNIT_USER_BINDIR__"
+
+if [ $# -eq 0 ] ; then
+	exec "${bindir}/init"
+fi
+
+if ! ls "${bindir}/$1" > /dev/null ; then
+
+	echo '[ runit-user ] Invalid subcommand' >&2
+	exit 1
+
+fi
+
+exec "${bindir}/$1"

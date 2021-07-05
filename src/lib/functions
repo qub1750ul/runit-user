@@ -1,0 +1,192 @@
+#!/usr/bin/bash
+
+# Needed for when the pipe still hasn't been initialized
+export RUNIT_LOGPIPE=${RUNIT_LOGPIPE:-/dev/null}
+
+##
+# Save shell option status for later restore
+function saveShopt
+{
+	declare -ga RUNIT_SHOPT_BACKUP
+	set +o | mapfile -a RUNIT_SHOPT_BACKUP
+}
+
+##
+# Get the name of the calling service
+function runit-getsvname
+{
+	declare -i parentLevel
+	parentLevel=$( grep -o / <<< "$PWD" | wc -l )
+
+	# Detect if using a log sub-service
+	# then correct the service name
+	if grep -Ee "${SVDIR}/[^/]*/log" <<< "$PWD" > /dev/null ; then
+			parentLevel=$(( parentLevel - 1 ))
+		fi
+
+	awk -F/ "{ print \$$(( parentLevel + 1 )) }" <<< "$PWD"
+}
+
+##
+# Decorated echo function
+# If no arguments are supplied then stdin is read
+function runit-echo
+{
+	declare prefix ; prefix="[ $(runit-getsvname) ]"
+
+	if [ $# -eq 0 ] ; then
+		awk "{ print \"$prefix\", \$0 }"
+	else
+		echo "$prefix $*"
+	fi
+}
+
+##
+# Decorated log function
+# The behavior is the same as 'runit-echo'
+function runit-log
+{
+	if [ "$1" != "-p" ] ; then
+		exec 1> /dev/null
+	else
+		shift
+	fi
+	
+	eval runit-echo "$*" | tee --append "$RUNIT_LOGPIPE"
+}
+
+##
+# Decorated error log function
+# The behavior is the same as 'runit-echo'
+function runit-logerr
+{
+	if [ "$1" != "-p" ] ; then
+		exec 1> /dev/null
+	else
+		shift
+	fi
+
+	if [ $# -eq 0 ] ; then
+		awk '{ print "ERROR:", $0 }' | runit-log
+	else
+		runit-log "ERROR: $*"
+	fi
+}
+
+##
+# Utility function. Check if a string contains whitespaces
+# $1 : A string
+function isWhitespaced
+{
+	grep -o ' ' <<< "$*"
+}
+
+##
+# Utility function. Check if the provided string is a valid variable name
+# $1 : A string
+function isValidVarName
+{
+	awk -f <(
+		) <<< "$1"
+}
+
+##
+# Insert a variable in the service environment db
+# $1 : Variable name
+# $2 : Variable value
+function runit-export
+{
+	# Check argument validity
+
+	declare -ri argc=2
+
+	if ! [ $# -eq $argc ] ; then
+		runit-logerr "${FUNCNAME[0]}: Required $argc arguments. Given $#"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	if [ -z "$1" ] ; then
+		runit-logerr "${FUNCNAME[0]}: Variable name cannot be empty"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	# TODO: Make a more extensive validity check
+	if isWhitespaced "$1" ; then
+		runit-logerr "${FUNCNAME[0]}: Exporting '$1'"
+		runit-logerr "${FUNCNAME[0]}: Variable names don't allow whitespaces"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	# TODO: Manage the case of multiple insertions of the same name
+	printf '%s:%s:%s' "$( runit-getsvname )" "$1" "$2" >> "$RUNIT_SVENV_FILE"
+}
+
+##
+# Import an environment variable from the service environment db
+# $1 : Service name
+# $2 : Variable name
+function runit-import-env
+{
+	# Check argument validity
+
+	declare -ri argc=2
+
+	if ! [ $# -eq $argc ] ; then
+		runit-logerr "${FUNCNAME[0]}: Required $argc arguments. Given $#"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	if [ -z "$1" ] ; then
+		runit-logerr "${FUNCNAME[0]}: Service name cannot be empty"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	if [ -z "$2" ] ; then
+		runit-logerr "${FUNCNAME[0]}: Variable name cannot be empty"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	# TODO: Make a more extensive validity check
+	if isWhitespaced "$2" ; then
+		runit-logerr "${FUNCNAME[0]}: Importing ${1}:${2}"
+		runit-logerr "${FUNCNAME[0]}: Variable names don't allow whitespaces"
+		return 22 # EINVAL 22 Invalid argument
+	fi
+
+	# Set the environment
+	declare -r fmt='"export %s=\"%s\"\n"'
+	declare -r awkScript="/^${1}:${2}/ { printf $fmt, \$2, \$3 ; exit 0 }"
+
+	# shellcheck source=/dev/null
+	source <( awk -F: "$awkScript" "$RUNIT_SVENV_FILE" )
+}
+
+##
+# Get the character sequence associated to SIGINT in the current shell
+function getIntrChar
+{
+	stty -a | awk 'BEGIN { FS = "[=;]" } ; /intr = .*;/ { print $2 }'
+}
+
+##
+# Log the specified error message and then ask the user what to do
+# $1 : Error message
+function runit-errprompt
+{
+	declare userInput
+
+	runit-logerr "$1"
+	read -rsn 1 -p 'Continue ? [yN]' userInput
+
+	! [ "$userInput" -eq "y" ] && exit 1
+
+	runit-log "User choose to continue" > /dev/null
+}
+
+function restoreShopt
+{
+	for opt in "${RUNIT_SHOPT_BACKUP[@]}" ; do
+		"$opt"
+	done
+}
+

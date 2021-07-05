@@ -1,0 +1,25 @@
+++++++++++++++++++++++++++++++++++++++                       +
++                                    +                       
++  RRRRRRRRRRRRRRRR                  +  UUUUU         UUUUU  
++  RRRRRRRRRRRRRRRRRRRR              +  UUUUU         UUUUU  
++  RRRR            RRRRRRR           +  UUUUU         UUUUU  
++  RRRR                RRRRRR        +  UUUUU         UUUUU  
++  RRRR                  RRRR        +  UUUUUUUUUUUUUUUUUUU  
++  RRRR                  RRRR        +                       +
++  RRRR                  RRRR        +  SSSSSSSSSSSSSSSSSSS  
++  RRRR                RRRRRR        +  SSSSS                
++  RRRR            RRRRRRR           +  SSSSSSSSSSSSSSSSSSS  
++  RRRR  RRRRRRRRRRRRRRRR            +                SSSSS  
++  RRRR  RRRRRRRRRRRR                +  SSSSSSSSSSSSSSSSSSS  
++  RRRR    RRRRRR                    +                       +
++  RRRR      RRRRRR                  +  RRRRRRRRRRRR         
++  RRRR        RRRRRR                +  RRRRRRRRRRRRRRR      
++  RRRR          RRRRRR              +  RRRRR       RRRRR    
++  RRRR            RRRRRR            +  RRRRR       RRRRR    
++  RRRR              RRRRRR          +  RRRRR  RRRRRR        
++  RRRR                RRRRRR        +  RRRRR  RRRRRR        
++  RRRR                  RRRRRR      +  RRRRR     RRRRR      
++  RRRR                    RRRRRR    +  RRRRR       RRRRR    
++  RRRR                      RRRRRR  +  RRRRR         RRRRR  
++                                    +                       
+++++++++++++++++++++++++++++++++++++++                      +

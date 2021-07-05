@@ -1,0 +1,6 @@
+= Runit-user
+A reimplementation of the Runit service management suite for use in user sessions
+
+== Building
+Run `./configure && make`
+

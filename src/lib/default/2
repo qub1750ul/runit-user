@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+declare -r runlevelDir="${RUNIT_USER_HOME}/runsvdir/${RUNIT_USER_RUNLEVEL}"
+
+# Detect if a meta runlevel isn't selected
+if ! grep -Ee '.meta$' <<< "$RUNIT_USER_RUNLEVEL" > /dev/null ; then
+
+	# Lend session control to the daemon supervisor
+	exec runsvdir "$runlevelDir"
+fi
+
+# Start in parallel runlevel mode
+find -L "$runlevelDir" -mindepth 1 -maxdepth 1 -type d |\  
+while IFS="" read -r runlevelDir ; do
+	runsvdir "$runlevelDir" &
+done
+
+# Mantain the session active
+wait

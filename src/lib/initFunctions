@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# shellcheck source=src/lib/functions
+source "$__RUNIT_USER_LIBDIR__/functions"
+
+# Override the 'runit-getsvname' function to correctly print logs
+function runit-getsvname
+{
+	echo init
+}
+
+# Test session environment sanity
+# abort session if not correctly initialized
+function checkLoginEnv
+{
+	declare -ra vars=( HOME USER SHELL PATH LOGNAME MAIL )
+	declare -a unsetVars=()
+
+	for v in "${vars[@]}" ; do
+		eval [ -z "\${$v:-}" ] && unsetVars+=("$v")
+	done
+
+	[ ${#unsetVars[@]} -eq 0 ] && return 0
+
+	runit-logerr -p <<-EOF
+		Login broken
+		Missing variables in environment:
+		  ${unsetVars[*]}
+		EOF
+
+	read -rsp "Press RETURN to reset session"
+	exit 1
+}
+
+##
+# Load environment from a list of env files
+#
+# Env files are lists of '=' separated key-value entries
+# @param $@ env files
+function loadEnv
+{
+	while IFS="=" read -rs key value ; do
+		eval export "${key}=\${${key}:-${value}}"
+	done < <( cat "$@" ) 
+}
