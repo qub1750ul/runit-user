@@ -109,4 +109,4 @@ $(DISTARCH): $(DISTDIR) makefile
 $(COMPDIR)/%: $(BUILDDIR)/configure.spp $(SRCDIR)/%
 	@ echo "Compiling $@"
 	@ mkdir -p $(dir $@)
-	tools/spp $? $@
+	tools/spp $^ $@
