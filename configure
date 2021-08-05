@@ -6,19 +6,11 @@ set -o errexit
 set -o nounset
 
 declare -r cfgFile="build/configure.make"
-declare -r sppDefFile="build/defines.csv"
+declare -r sppDefFile="build/configure.spp"
 
 function getPackageVersion
 {
-	if git describe 2> /dev/null ; then
-		# shellcheck disable=2016
-		echo '`git descrbe` now working'
-		echo 'fix ./configure ASAP'
-		exit 1
-	fi
-
-	echo "v0.0.0-cantGitIt"
-	# git describe --dirty
+	git describe --tags --dirty
 }
 
 mkdir -p "$( dirname $cfgFile )"
