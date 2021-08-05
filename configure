@@ -17,9 +17,9 @@ mkdir -p "$( dirname $cfgFile )"
 
 # Setup the preprocessor
 cat > "$sppDefFile" <<-EOF
-	RUNIT_USER_VERSION,$( getPackageVersion )
-	RUNIT_USER_BINDIR,/lib/runit-user/bin
-	RUNIT_USER_LIBDIR,/lib/runit-user/lib
+	RUNIT_USER_VERSION = $( getPackageVersion )
+	RUNIT_USER_BINDIR = /lib/runit-user/bin
+	RUNIT_USER_LIBDIR = /lib/runit-user/lib
 	EOF
 
 # Setup the make configuration file

@@ -2,7 +2,7 @@
 #
 # spp
 # A very Simple PreProcessor that substitutes strings in $__KEY__ format
-# with a configured values
+# with a configured value
 #
 # @param $1 definitions file
 # @param $2 input  file
@@ -12,16 +12,25 @@
 # Every line is a substitution mapping in the format "KEY,VALUE"
 #
 # Example:
-# The line "MY_VAR,my_value" causes the substitution of all
-# "$___MY_VAR__" strings in the input file to "my_value" 
+# The line "MY_VAR = my_value" causes the substitution of all
+# "$__MY_VAR__" strings in the input file to "my_value" 
 
 set -o errexit
 set -o nounset
+set -o pipefail
+shopt -s lastpipe
 
 declare -a sedScript
 
-while IFS="," read -r key value ; do
-	sedScript+=( "-e" "s!\$__${key}__!${value}!" )
-done < "$1" 
+while IFS="=" read -r key val ; do
+
+	# Ignore leading  whitespace on key
+	# Ignore trailing whitespace on val
+	sed -Ee 's!^ !!'   <<< "$key" | read -r key
+	sed -Ee 's!\ +$!!' <<< "$val" | read -r val
+
+	sedScript+=( "-e" "s!\$__${key}__!${val}!" )
+
+done < "$1"
 
 sed "${sedScript[@]}" "$2" > "$3"
