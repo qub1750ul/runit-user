@@ -43,7 +43,7 @@ comp := $(subst $(SRCDIR),$(COMPDIR),$(src))
 
 .SILENT .PHONY: build
 build: $(comp)
-	echo "Built $(PACKAGE) $(RUNIT_USER_VERSION)"
+	echo "Built $(PACKAGE) $(PKGVER)"
 
 .SILENT .PHONY: dist
 dist: $(DISTDIR)
