@@ -13,12 +13,16 @@ PACKAGE := runit-user
 SRCDIR   = src
 BUILDDIR = build
 COMPDIR  = $(BUILDDIR)/comp
-DISTDIR  = $(BUILDDIR)/dist
+DISTHOME = $(BUILDDIR)/dist
+DISTDIR  = $(DISTHOME)/$(DISTMODE)
 
 MAKEMODULES = lib/makemodules
 
+DISTARCH = $(DISTHOME)/$(PACKAGE)-$(PKGVER).tar
+
 # Applications
 
+TAR     ?= tar
 FIND    ?= find
 RSYNC   ?= rsync
 INSTALL ?= install
@@ -38,21 +42,19 @@ comp := $(subst $(SRCDIR),$(COMPDIR),$(src))
 # Standard targets
 
 .SILENT .PHONY: build
-build: $(COMPDIR)
-
-.SILENT .PHONY: install
-install: $(COMPDIR)
-	$(call requiredEnvCheck,INSTALL_MODE INSTALL_DIR)
-	echo "Installing $(PACKAGE) $(RUNIT_USER_VERSION) in $(INSTALL_DIR)"
-
-	$(INSTALL) -d $(INSTALL_DIR)/{$(RUNIT_USER_BINDIR),$(LIBDIR)}
-	$(RSYNC) -rh $(COMPDIR)/{bin,lib} $(INSTALL_DIR)/$(LIBDIR)/
-	
-	$(INSTALL) -d $(INSTALL_DIR)/bin
-	ln -sf ../$(LIBDIR)/bin/runit-user $(INSTALL_DIR)/bin/
+build: $(comp)
+	echo "Built $(PACKAGE) $(RUNIT_USER_VERSION)"
 
 .SILENT .PHONY: dist
-dist: $(DISTDIR)/$(DISTMODE)
+dist: $(DISTDIR)
+
+.SILENT .PHONY: distarch
+distarch: $(DISTARCH)
+
+.SILENT .PHONY: install
+install:
+	echo "Installing $(PACKAGE) $(PKGVER) to $(PREFIX)"
+	$(RSYNC) -hr --progress $(DISTDIR) $(PREFIX)/
 
 .SILENT .PHONY: clean
 clean:
@@ -64,7 +66,7 @@ mostlyclean:
 
 .SILENT .PHONY: distclean
 distclean:
-	rm -rf $(DISTDIR)/$(DISTMODE)
+	rm -rf $(DISTDIR)
 
 .SILENT .PHONY: test
 test:
@@ -76,25 +78,35 @@ test:
 	fi
 	
 	cd $$testdist
-# # start tests
+	# start tests
 
 # Recipes
 
-.SILENT: $(DISTDIR)/test
-$(DISTDIR)/test: $(COMPDIR)
-	echo "Updating distribution in $@"
+.SILENT: $(DISTDIR)
+$(DISTDIR): makefile $(BUILDDIR)/configure.make $(comp)
 
-	set -o allexport
-	INSTALL_MODE=$(DISTMODE)
-	INSTALL_DIR=$@
+	# Install core package components
+	$(INSTALL) -d $@/{$(RUNIT_USER_BINDIR),$(LIBDIR)}
+	$(RSYNC) -rh $(COMPDIR)/{bin,lib} $@/$(LIBDIR)/
 
-	$(MAKE) --no-print-directory install
+	# Install test components
 
-.SILENT: $(COMPDIR)
-$(COMPDIR): $(comp)
-	echo "Built $(PACKAGE) $(RUNIT_USER_VERSION)"
+ifeq ($(DISTMODE),test)
+	:
+endif
 
-$(COMPDIR)/%: $(SRCDIR)/%
-	@ echo "Compiling $@" 
+	# Install system links
+	$(INSTALL) -d $@/bin
+	ln -sf ../$(LIBDIR)/bin/runit-user $@/bin/
+
+	echo "Updated distribution in $@"
+
+.SILENT: $(DISTARCH)
+$(DISTARCH): $(DISTDIR) makefile
+	$(TAR) -cf $(DISTARCH) -C $< $(subst $</,,$(wildcard $</*))
+	echo "Created distribution archive $@"
+
+$(COMPDIR)/%: $(BUILDDIR)/configure.spp $(SRCDIR)/%
+	@ echo "Compiling $@"
 	@ mkdir -p $(dir $@)
-	@ tools/spp $(BUILDDIR)/defines.csv $< $@
+	tools/spp $? $@
