@@ -1,6 +1,20 @@
-= Runit-user
+= RUnit-user
 A reimplementation of the Runit service management suite for use in user sessions
+:toc:
+
+== Why
+RUnit is a product truly adherent to the KISS philosophy. +
+Unfortunately KISS not necessarily equals flexibility or configurability. +
+In fact RUnit presents some inflexibilities that makes it not suitable
+for user session usage as is.
+
+Runit-user aims to solve these problems while keeping differences from the
+original as little as possible, with few exceptions.
 
 == Building
-Run `./configure && make`
+
+Clone this project in a directory in your system, cd into it,
+then run `./configure && make`
+
+To generate a release tarball: `./configure && make distarch`
 
